@@ -1,0 +1,702 @@
+{% extends 'base.html' %}
+
+{% block title %}Lab Technician Dashboard - LIS{% endblock %}
+{% block page_title %}Lab Technician Dashboard{% endblock %}
+
+{% block extra_head %}
+<style>
+  .nav-pills .nav-link {
+    color: #4b5563;
+    font-weight: 500;
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    transition: all 0.2s ease;
+  }
+  .nav-pills .nav-link.active {
+    background-color: var(--lis-primary);
+    color: #fff;
+  }
+  .nav-pills .nav-link:hover:not(.active) {
+    background-color: #f3f4f6;
+  }
+  .table th {
+    font-weight: 600;
+    color: #4b5563;
+  }
+  .table td {
+    vertical-align: middle;
+  }
+  .animate-hover {
+    transition: all 0.2s ease;
+  }
+  .animate-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+  .result-row {
+    transition: background-color 0.2s;
+  }
+  .result-row:hover {
+    background-color: #f9fafb;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Welcome Header -->
+<div class="lis-card mb-4 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+  <div>
+    <h4 class="mb-1 fw-semibold">Welcome back, {{ request.user.username|default:"Technician" }}</h4>
+    <p class="text-secondary mb-0">Manage orders, receive samples in lab, and submit assay results efficiently.</p>
+  </div>
+  <div class="d-flex gap-2">
+    <button class="btn btn-outline-secondary btn-sm" onclick="loadDashboard()"><i class="bi bi-arrow-clockwise me-1"></i> Refresh</button>
+  </div>
+</div>
+
+<!-- Dynamic Stats -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="lis-card h-100 animate-hover border-start border-4 border-warning">
+      <div class="d-flex align-items-center gap-3">
+        <div class="rounded-3 d-inline-flex align-items-center justify-content-center"
+             style="width:44px;height:44px;background:#fef3c7;color:#b45309;">
+          <i class="bi bi-box fs-5"></i>
+        </div>
+        <div>
+          <div class="text-secondary small">Ready to Receive</div>
+          <div class="fs-4 fw-semibold" id="countCollected">0</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="lis-card h-100 animate-hover border-start border-4 border-info">
+      <div class="d-flex align-items-center gap-3">
+        <div class="rounded-3 d-inline-flex align-items-center justify-content-center"
+             style="width:44px;height:44px;background:#e0f2fe;color:#0369a1;">
+          <i class="bi bi-hourglass-split fs-5"></i>
+        </div>
+        <div>
+          <div class="text-secondary small">Testing In-Lab</div>
+          <div class="fs-4 fw-semibold" id="countInLab">0</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="lis-card h-100 animate-hover border-start border-4 border-success">
+      <div class="d-flex align-items-center gap-3">
+        <div class="rounded-3 d-inline-flex align-items-center justify-content-center"
+             style="width:44px;height:44px;background:#dcfce7;color:#15803d;">
+          <i class="bi bi-check2-circle fs-5"></i>
+        </div>
+        <div>
+          <div class="text-secondary small">Completed Today</div>
+          <div class="fs-4 fw-semibold" id="countCompleted">0</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="lis-card h-100 animate-hover border-start border-4 border-danger">
+      <div class="d-flex align-items-center gap-3">
+        <div class="rounded-3 d-inline-flex align-items-center justify-content-center"
+             style="width:44px;height:44px;background:#fee2e2;color:#b91c1c;">
+          <i class="bi bi-exclamation-triangle fs-5"></i>
+        </div>
+        <div>
+          <div class="text-secondary small">Critical Cases</div>
+          <div class="fs-4 fw-semibold" id="countCritical">0</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Main grid -->
+<div class="row g-3">
+  <!-- Test Queue -->
+  <div class="col-lg-8">
+    <div class="lis-card">
+      <div class="row align-items-center mb-3">
+        <div class="col-md-6 col-12">
+          <h6 class="mb-0 fw-semibold"><i class="bi bi-list-task me-2 text-primary"></i>Technician Worklist</h6>
+        </div>
+        <div class="col-md-6 col-12 mt-2 mt-md-0">
+          <div class="input-group input-group-sm">
+            <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+            <input type="text" id="searchFilter" class="form-control border-start-0" placeholder="Search Patient, MRN or Order..." onkeyup="filterQueue()">
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation Pills for Filtering Status -->
+      <ul class="nav nav-pills mb-3" id="queueTabs" role="tablist">
+        <li class="nav-item">
+          <button class="nav-link active btn-sm" id="tab-all" onclick="setTabFilter('all')">
+            All <span class="badge bg-secondary ms-1" id="badge-all">0</span>
+          </button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-link btn-sm" id="tab-collected" onclick="setTabFilter('2')">
+            Ready to Receive <span class="badge bg-warning text-dark border-warning ms-1" id="badge-collected">0</span>
+          </button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-link btn-sm" id="tab-in-lab" onclick="setTabFilter('3')">
+            In-Lab / Testing <span class="badge bg-info text-dark border-info ms-1" id="badge-in-lab">0</span>
+          </button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-link btn-sm" id="tab-completed" onclick="setTabFilter('4')">
+            Completed <span class="badge bg-success ms-1" id="badge-completed">0</span>
+          </button>
+        </li>
+      </ul>
+
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="text-secondary small table-light">
+            <tr>
+              <th>Order ID</th>
+              <th>Patient</th>
+              <th>Assays</th>
+              <th>Received/Ordered</th>
+              <th>Status</th>
+              <th class="text-end pe-3">Action</th>
+            </tr>
+          </thead>
+          <tbody id="queueTableBody">
+            <tr>
+              <td colspan="6" class="text-center py-5 text-muted">
+                <span class="spinner-border spinner-border-sm me-2" role="status"></span> Loading test queue...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Side panel -->
+  <div class="col-lg-4">
+    <div class="lis-card mb-3">
+      <h6 class="fw-semibold mb-3"><i class="bi bi-lightning-charge me-2 text-primary"></i>Quick Actions</h6>
+      <div class="d-grid gap-2">
+        <button class="btn btn-light text-start border align-items-center d-flex justify-content-between" onclick="setTabFilter('3')">
+          <span><i class="bi bi-clipboard-plus me-2 text-primary"></i> Enter Test Results</span>
+          <span class="badge bg-info text-dark border-info" id="quickInLabCount">0</span>
+        </button>
+        <button class="btn btn-light text-start border align-items-center d-flex justify-content-between" onclick="setTabFilter('2')">
+          <span><i class="bi bi-inbox me-2 text-primary"></i> Receive Samples</span>
+          <span class="badge bg-warning text-dark border-warning" id="quickCollectedCount">0</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="lis-card">
+      <h6 class="fw-semibold mb-3"><i class="bi bi-info-circle me-2 text-primary"></i>LIS Status</h6>
+      <ul class="list-unstyled mb-0 small">
+        <li class="d-flex justify-content-between py-2 border-bottom"><span>Analyzer A (Hematology)</span><span class="text-success fw-semibold"><i class="bi bi-check-circle-fill me-1"></i> Online</span></li>
+        <li class="d-flex justify-content-between py-2 border-bottom"><span>Analyzer B (Biochemistry)</span><span class="text-success fw-semibold"><i class="bi bi-check-circle-fill me-1"></i> Online</span></li>
+        <li class="d-flex justify-content-between py-2 border-bottom"><span>LIS Database Server</span><span class="text-success fw-semibold"><i class="bi bi-check-circle-fill me-1"></i> Connected</span></li>
+        <li class="d-flex justify-content-between py-2"><span>Report Dispatcher</span><span class="text-success fw-semibold"><i class="bi bi-check-circle-fill me-1"></i> Active</span></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Enter Test Results -->
+<div class="modal fade" id="enterResultsModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title fw-semibold"><i class="bi bi-file-earmark-medical me-2"></i>Enter Assay Test Results</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="card bg-light border-0 mb-4">
+          <div class="card-body p-3">
+            <div class="row g-3">
+              <div class="col-md-3">
+                <span class="text-muted small d-block">Order No</span>
+                <span class="fw-bold fs-6 text-primary" id="modalOrderNo"></span>
+              </div>
+              <div class="col-md-5">
+                <span class="text-muted small d-block">Patient Name / MRN</span>
+                <span class="fw-semibold d-block" id="modalPatientInfo"></span>
+              </div>
+              <div class="col-md-4">
+                <span class="text-muted small d-block">Collected At</span>
+                <span class="small" id="modalCollectedAt"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <form id="resultsForm" onsubmit="submitResults(event)">
+          <input type="hidden" id="modalOrderIdVal">
+          <div class="table-responsive">
+            <table class="table table-bordered align-middle">
+              <thead class="table-light text-secondary small">
+                <tr>
+                  <th style="width: 25%;">Assay Name</th>
+                  <th style="width: 25%;">Result Value <span class="text-danger">*</span></th>
+                  <th style="width: 15%;">Unit</th>
+                  <th style="width: 15%;">Normal Range</th>
+                  <th style="width: 20%;">Flag</th>
+                </tr>
+              </thead>
+              <tbody id="modalAssaysBody">
+                <!-- Loaded dynamically -->
+              </tbody>
+            </table>
+          </div>
+          <div class="mb-3">
+            <label for="modalOrderRemarks" class="form-label fw-semibold small text-muted">Technician Notes / Remarks (Optional)</label>
+            <textarea id="modalOrderRemarks" class="form-control" rows="2" placeholder="Add any technical remarks or observations..."></textarea>
+          </div>
+          <div class="modal-footer px-0 pb-0 pt-3">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="btnSubmitResults"><i class="bi bi-check-circle me-1"></i> Save & Mark Completed</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: View Completed Report -->
+<div class="modal fade" id="viewReportModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title fw-semibold"><i class="bi bi-file-earmark-check me-2"></i>Completed Lab Report</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="card bg-light border-0 mb-4">
+          <div class="card-body p-3">
+            <div class="row g-3">
+              <div class="col-md-3">
+                <span class="text-muted small d-block">Order No</span>
+                <span class="fw-bold fs-6 text-success" id="reportOrderNo"></span>
+              </div>
+              <div class="col-md-5">
+                <span class="text-muted small d-block">Patient Name / MRN</span>
+                <span class="fw-semibold d-block" id="reportPatientInfo"></span>
+              </div>
+              <div class="col-md-4">
+                <span class="text-muted small d-block">Completed At</span>
+                <span class="small" id="reportCompletedAt"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-responsive mb-3">
+          <table class="table table-bordered table-striped align-middle">
+            <thead class="table-light text-secondary small">
+              <tr>
+                <th>Assay Name</th>
+                <th class="text-center">Result Value</th>
+                <th class="text-center">Unit</th>
+                <th class="text-center">Normal Range</th>
+                <th class="text-center">Flag</th>
+                <th>Remarks</th>
+              </tr>
+            </thead>
+            <tbody id="reportAssaysBody">
+              <!-- Loaded dynamically -->
+            </tbody>
+          </table>
+        </div>
+
+        <div id="reportNotesSection" class="p-3 bg-light rounded border border-light">
+          <div class="text-muted small fw-semibold">Remarks / Notes:</div>
+          <p class="mb-0 small text-secondary" id="reportNotesText">-</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" onclick="window.print()"><i class="bi bi-printer me-1"></i> Print</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  let allOrders = [];
+  let activeTabFilter = 'all';
+  let enterResultsModal;
+  let viewReportModal;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    enterResultsModal = new bootstrap.Modal(document.getElementById('enterResultsModal'));
+    viewReportModal = new bootstrap.Modal(document.getElementById('viewReportModal'));
+    loadDashboard();
+  });
+
+  function authHeaders() {
+    return {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCookie('csrftoken')
+    };
+  }
+
+  async function loadDashboard() {
+    try {
+      const res = await fetch('/api/v1/orders/', { headers: authHeaders() });
+      if (res.status === 401 || res.status === 403) {
+        window.location.href = '/login/';
+        return;
+      }
+      if (!res.ok) throw new Error('Failed to fetch orders.');
+      allOrders = await res.json();
+      calculateStatsAndCounters();
+      renderQueue();
+    } catch (e) {
+      showAlert(e.message || 'Error loading dashboard data.', 'danger');
+    }
+  }
+
+  function calculateStatsAndCounters() {
+    let collectedCount = 0; // 2
+    let inLabCount = 0;     // 3
+    let completedToday = 0; // 4
+    let criticalCount = 0;
+
+    const todayStr = new Date().toDateString();
+
+    allOrders.forEach(order => {
+      if (order.order_status === 2) collectedCount++;
+      else if (order.order_status === 3) inLabCount++;
+      else if (order.order_status === 4) {
+        completedToday++;
+        // Check if any results inside completed order have critical flag
+        if (order.results && order.results.some(r => r.flag === 'Critical')) {
+          criticalCount++;
+        }
+      }
+    });
+
+    // Update statistics numbers
+    document.getElementById('countCollected').textContent = collectedCount;
+    document.getElementById('countInLab').textContent = inLabCount;
+    document.getElementById('countCompleted').textContent = completedToday;
+    document.getElementById('countCritical').textContent = criticalCount;
+
+    // Update Quick Action badges
+    document.getElementById('quickInLabCount').textContent = inLabCount;
+    document.getElementById('quickCollectedCount').textContent = collectedCount;
+
+    // Update filter tabs counters
+    document.getElementById('badge-all').textContent = allOrders.length;
+    document.getElementById('badge-collected').textContent = collectedCount;
+    document.getElementById('badge-in-lab').textContent = inLabCount;
+    document.getElementById('badge-completed').textContent = completedToday;
+  }
+
+  function setTabFilter(tabName) {
+    activeTabFilter = tabName;
+    
+    // Toggle active classes on tab buttons
+    const tabs = ['all', '2', '3', '4'];
+    tabs.forEach(t => {
+      const btn = document.getElementById(t === 'all' ? 'tab-all' : `tab-${getTabIdName(t)}`);
+      if (btn) {
+        if (t === tabName) btn.classList.add('active');
+        else btn.classList.remove('active');
+      }
+    });
+
+    renderQueue();
+  }
+
+  function getTabIdName(status) {
+    if (status === '2') return 'collected';
+    if (status === '3') return 'in-lab';
+    if (status === '4') return 'completed';
+    return '';
+  }
+
+  function filterQueue() {
+    renderQueue();
+  }
+
+  function renderQueue() {
+    const tbody = document.getElementById('queueTableBody');
+    const searchValue = document.getElementById('searchFilter').value.toLowerCase().trim();
+
+    // Filter by Tab Status
+    let filtered = allOrders;
+    if (activeTabFilter !== 'all') {
+      const statusInt = parseInt(activeTabFilter, 10);
+      filtered = allOrders.filter(order => order.order_status === statusInt);
+    }
+
+    // Filter by Search Query
+    if (searchValue) {
+      filtered = filtered.filter(order => {
+        return order.order_no.toLowerCase().includes(searchValue) ||
+               (order.patient_name && order.patient_name.toLowerCase().includes(searchValue)) ||
+               (order.patient_mrn && order.patient_mrn.toLowerCase().includes(searchValue));
+      });
+    }
+
+    tbody.innerHTML = '';
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center py-5 text-muted"><i class="bi bi-inbox fs-2 d-block mb-2 text-secondary"></i>No orders match the criteria.</td></tr>`;
+      return;
+    }
+
+    filtered.forEach(order => {
+      // Build Assay list tags
+      const assaysHtml = order.results.map(r => `
+        <span class="badge bg-light text-dark border me-1 mb-1" title="${r.assay_name}">
+          ${r.assay_code}
+        </span>
+      `).join('');
+
+      // Status Badge
+      let statusBadge = '';
+      if (order.order_status === 1) statusBadge = '<span class="badge bg-secondary-subtle text-secondary border">Ordered</span>';
+      else if (order.order_status === 2) statusBadge = '<span class="badge bg-warning-subtle text-warning border-warning">Ready to Receive</span>';
+      else if (order.order_status === 3) statusBadge = '<span class="badge bg-info-subtle text-info border-info">Testing</span>';
+      else if (order.order_status === 4) statusBadge = '<span class="badge bg-success-subtle text-success border-success">Completed</span>';
+
+      // Date column
+      let dateVal = order.received_at ? new Date(order.received_at) : (order.collected_at ? new Date(order.collected_at) : new Date(order.ordered_at));
+      let dateLabel = order.received_at ? 'Recv: ' : (order.collected_at ? 'Coll: ' : 'Ord: ');
+      let dateHtml = `<span class="small text-muted">${dateLabel}</span><span class="small">${dateVal.toLocaleString()}</span>`;
+
+      // Action Button
+      let actionBtn = '';
+      if (order.order_status === 2) {
+        actionBtn = `
+          <button class="btn btn-sm btn-outline-warning text-dark fw-semibold" onclick="receiveSample(${order.id}, event)">
+            <i class="bi bi-box-arrow-in-right me-1"></i> Receive In-Lab
+          </button>
+        `;
+      } else if (order.order_status === 3) {
+        actionBtn = `
+          <button class="btn btn-sm btn-primary fw-semibold" onclick="openResultsModal(${order.id})">
+            <i class="bi bi-pencil-square me-1"></i> Enter Results
+          </button>
+        `;
+      } else if (order.order_status === 4) {
+        actionBtn = `
+          <button class="btn btn-sm btn-outline-success fw-semibold" onclick="openReportModal(${order.id})">
+            <i class="bi bi-eye-fill me-1"></i> View Report
+          </button>
+        `;
+      } else {
+        actionBtn = `<span class="text-muted small">Awaiting Collection</span>`;
+      }
+
+      tbody.innerHTML += `
+        <tr>
+          <td class="fw-bold text-dark">${order.order_no}</td>
+          <td>
+            <div class="fw-semibold text-dark">${order.patient_name}</div>
+            <div class="text-muted small">MRN: ${order.patient_mrn}</div>
+          </td>
+          <td><div class="d-flex flex-wrap">${assaysHtml}</div></td>
+          <td class="small">${dateHtml}</td>
+          <td>${statusBadge}</td>
+          <td class="text-end pe-3">${actionBtn}</td>
+        </tr>
+      `;
+    });
+  }
+
+  async function receiveSample(orderId, event) {
+    if (event) event.stopPropagation();
+    
+    // Disable button to prevent double-click
+    const btn = event ? event.target.closest('button') : null;
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Receiving...';
+    }
+
+    try {
+      const res = await fetch(`/api/v1/orders/${orderId}/receive/`, {
+        method: 'PATCH',
+        headers: authHeaders()
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to receive sample in lab.');
+      
+      showAlert('Sample marked In-Lab successfully! You can now enter test results.', 'success');
+      await loadDashboard();
+    } catch (e) {
+      showAlert(e.message, 'danger');
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-box-arrow-in-right me-1"></i> Receive In-Lab';
+      }
+    }
+  }
+
+  function openResultsModal(orderId) {
+    const order = allOrders.find(o => o.id === orderId);
+    if (!order) return;
+
+    document.getElementById('modalOrderIdVal').value = order.id;
+    document.getElementById('modalOrderNo').textContent = order.order_no;
+    document.getElementById('modalPatientInfo').textContent = `${order.patient_name} (MRN: ${order.patient_mrn})`;
+    
+    const collAtVal = order.collected_at ? new Date(order.collected_at).toLocaleString() : 'N/A';
+    document.getElementById('modalCollectedAt').textContent = collAtVal;
+    document.getElementById('modalOrderRemarks').value = order.notes || '';
+
+    const tbody = document.getElementById('modalAssaysBody');
+    tbody.innerHTML = '';
+
+    order.results.forEach(res => {
+      tbody.innerHTML += `
+        <tr class="result-row">
+          <td class="fw-semibold">
+            ${res.assay_name}
+            <div class="text-muted small" style="font-size:0.75rem;">Code: ${res.assay_code}</div>
+          </td>
+          <td>
+            <input type="text" 
+                   class="form-control form-control-sm assay-val-input" 
+                   data-result-id="${res.id}" 
+                   placeholder="Enter result value" 
+                   value="${res.result_value || ''}" 
+                   required>
+          </td>
+          <td class="text-secondary small">${res.unit || '-'}</td>
+          <td class="text-secondary small font-monospace">${res.normal_range || '-'}</td>
+          <td>
+            <select class="form-select form-select-sm assay-flag-select" data-result-id="${res.id}">
+              <option value="Normal" ${res.flag === 'Normal' ? 'selected' : ''}>Normal</option>
+              <option value="High" ${res.flag === 'High' ? 'selected' : ''}>High</option>
+              <option value="Low" ${res.flag === 'Low' ? 'selected' : ''}>Low</option>
+              <option value="Critical" ${res.flag === 'Critical' ? 'selected' : ''}>Critical</option>
+            </select>
+          </td>
+        </tr>
+      `;
+    });
+
+    enterResultsModal.show();
+  }
+
+  async function submitResults(event) {
+    event.preventDefault();
+
+    const orderId = document.getElementById('modalOrderIdVal').value;
+    const notes = document.getElementById('modalOrderRemarks').value.trim();
+    const submitBtn = document.getElementById('btnSubmitResults');
+
+    // Collect result values
+    const resultInputs = document.querySelectorAll('.assay-val-input');
+    const resultsPayload = [];
+
+    for (let input of resultInputs) {
+      const resultId = input.getAttribute('data-result-id');
+      const val = input.value.trim();
+      const flagSelect = document.querySelector(`.assay-flag-select[data-result-id="${resultId}"]`);
+      const flag = flagSelect ? flagSelect.value : 'Normal';
+
+      if (!val) {
+        showAlert('Please fill in result values for all assays.', 'warning');
+        input.focus();
+        return;
+      }
+
+      resultsPayload.push({
+        result_id: parseInt(resultId, 10),
+        value: val,
+        flag: flag,
+        remarks: '' // Optional remarks per assay, if needed. Keep it blank for general order-level remarks.
+      });
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Completing...';
+
+    try {
+      // First save results and complete order
+      const resultsRes = await fetch(`/api/v1/orders/${orderId}/results/`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ results: resultsPayload })
+      });
+      const resultsData = await resultsRes.json();
+      if (!resultsRes.ok) throw new Error(resultsData.message || 'Failed to submit test results.');
+
+      // Second, save order-level notes/remarks
+      const notesRes = await fetch(`/api/v1/orders/${orderId}/status/`, {
+        method: 'PATCH',
+        headers: authHeaders(),
+        body: JSON.stringify({ notes: notes })
+      });
+
+      showAlert('Test results entered successfully and order marked COMPLETED!', 'success');
+      enterResultsModal.hide();
+      await loadDashboard();
+    } catch (e) {
+      showAlert(e.message, 'danger');
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Save & Mark Completed';
+    }
+  }
+
+  function openReportModal(orderId) {
+    const order = allOrders.find(o => o.id === orderId);
+    if (!order) return;
+
+    document.getElementById('reportOrderNo').textContent = order.order_no;
+    document.getElementById('reportPatientInfo').textContent = `${order.patient_name} (MRN: ${order.patient_mrn})`;
+    
+    // Set Completed At time
+    let dateStr = 'N/A';
+    if (order.updated_at) {
+      dateStr = new Date(order.updated_at).toLocaleString();
+    }
+    document.getElementById('reportCompletedAt').textContent = dateStr;
+
+    // Populate lines table
+    const tbody = document.getElementById('reportAssaysBody');
+    tbody.innerHTML = '';
+
+    order.results.forEach(res => {
+      let flagBadge = '';
+      if (res.flag === 'Normal') flagBadge = '<span class="badge bg-success-subtle text-success border border-success">Normal</span>';
+      else if (res.flag === 'High') flagBadge = '<span class="badge bg-warning-subtle text-warning border-warning">High</span>';
+      else if (res.flag === 'Low') flagBadge = '<span class="badge bg-warning-subtle text-warning border-warning">Low</span>';
+      else if (res.flag === 'Critical') flagBadge = '<span class="badge bg-danger text-white border border-danger">Critical</span>';
+      else flagBadge = `<span class="badge bg-light text-dark border">${res.flag || '-'}</span>`;
+
+      tbody.innerHTML += `
+        <tr>
+          <td class="fw-semibold">${res.assay_name} <span class="text-muted small font-monospace">(${res.assay_code})</span></td>
+          <td class="text-center fw-bold fs-6">${res.result_value || '-'}</td>
+          <td class="text-center text-secondary small">${res.unit || '-'}</td>
+          <td class="text-center text-secondary small font-monospace">${res.normal_range || '-'}</td>
+          <td class="text-center">${flagBadge}</td>
+          <td class="small text-secondary">${res.remarks || '-'}</td>
+        </tr>
+      `;
+    });
+
+    // Notes
+    document.getElementById('reportNotesText').textContent = order.notes || 'No remarks provided.';
+
+    viewReportModal.show();
+  }
+
+</script>
+{% endblock %}

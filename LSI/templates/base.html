@@ -1,0 +1,398 @@
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}LIS Portal{% endblock %}</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --lis-primary: #0d9488; /* Clinical Teal */
+      --lis-primary-dark: #0f766e;
+      --lis-primary-hover: #14b8a6;
+      --lis-primary-light: #f0fdfa;
+      --lis-sidebar-bg: #0b1329; /* Slate Navy */
+      --lis-sidebar-hover: #1c2541;
+      --lis-sidebar-text: #94a3b8;
+      --lis-sidebar-active: #2dd4bf; /* Bright teal */
+      --lis-bg: #f8fafc; /* Slate 50 background */
+      --lis-card: #ffffff;
+      --lis-border: #e2e8f0; /* Slate 200 */
+      --sidebar-width: 260px;
+      --topbar-height: 65px;
+      --lis-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.03), 0 2px 4px -2px rgba(15, 23, 42, 0.03), 0 10px 15px -3px rgba(15, 23, 42, 0.05);
+      --lis-shadow-hover: 0 20px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      background: var(--lis-bg);
+      color: #1e293b;
+      margin: 0;
+      -webkit-font-smoothing: antialiased;
+      letter-spacing: -0.01em;
+    }
+
+    /* Scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+
+    /* Sidebar */
+    .lis-sidebar {
+      position: fixed; top: 0; left: 0; bottom: 0;
+      width: var(--sidebar-width);
+      background: var(--lis-sidebar-bg);
+      color: var(--lis-sidebar-text);
+      display: flex; flex-direction: column;
+      z-index: 1040;
+      transition: transform .25s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow-y: auto;
+      border-right: 1px solid rgba(255, 255, 255, 0.04);
+    }
+    .lis-sidebar .brand {
+      display: flex; align-items: center; gap: .75rem;
+      padding: 1.25rem 1.5rem;
+      font-weight: 800; color: #fff; font-size: 1.2rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      letter-spacing: -0.02em;
+    }
+    .lis-sidebar .brand i {
+      background: linear-gradient(135deg, var(--lis-primary) 0%, var(--lis-primary-dark) 100%);
+      color: #fff;
+      width: 36px; height: 36px; border-radius: 10px;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 1.2rem;
+      box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
+    }
+    .lis-sidebar .nav-section {
+      padding: 1.25rem 1.5rem .5rem;
+      font-size: .68rem; text-transform: uppercase;
+      letter-spacing: .12em; color: #475569;
+      font-weight: 700;
+    }
+    .lis-sidebar .nav-link {
+      display: flex; align-items: center; gap: .8rem;
+      padding: .75rem 1.25rem; margin: 3px 1rem;
+      border-radius: 10px;
+      color: var(--lis-sidebar-text);
+      font-size: .92rem; text-decoration: none;
+      font-weight: 500;
+      transition: all .2s ease;
+      position: relative;
+    }
+    .lis-sidebar .nav-link i { font-size: 1.15rem; width: 22px; text-align: center; opacity: 0.8; }
+    .lis-sidebar .nav-link:hover {
+      background: var(--lis-sidebar-hover);
+      color: #fff;
+      transform: translateX(3px);
+    }
+    .lis-sidebar .nav-link.active {
+      background: rgba(45, 212, 191, 0.08);
+      color: var(--lis-sidebar-active);
+      font-weight: 600;
+    }
+    .lis-sidebar .nav-link.active::before {
+      content: '';
+      position: absolute; left: 0; top: 25%; bottom: 25%;
+      width: 4px; border-radius: 0 4px 4px 0;
+      background: var(--lis-sidebar-active);
+    }
+
+    /* Topbar */
+    .lis-topbar {
+      position: fixed; top: 0; right: 0; left: var(--sidebar-width);
+      height: var(--topbar-height);
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--lis-border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 2rem;
+      z-index: 1030;
+      transition: left .25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .lis-topbar h1 { font-size: 1.15rem; font-weight: 700; margin: 0; color: #0f172a; letter-spacing: -0.02em; }
+    .lis-topbar .topbar-left { display: flex; align-items: center; gap: 1rem; }
+    .sidebar-toggle {
+      background: transparent;
+      border: 1px solid var(--lis-border);
+      width: 40px; height: 40px; border-radius: 10px;
+      display: none; align-items: center; justify-content: center;
+      color: #334155;
+      transition: all 0.2s ease;
+    }
+    .sidebar-toggle:hover {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+    }
+    .user-chip {
+      display: inline-flex; align-items: center; gap: .6rem;
+      background: #f1f5f9;
+      padding: .4rem .9rem; border-radius: 99px;
+      font-size: .85rem; color: #334155;
+      font-weight: 600;
+      transition: all 0.2s ease;
+    }
+    .user-chip:hover {
+      background: #e2e8f0;
+    }
+    .user-chip .avatar {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--lis-primary) 0%, var(--lis-primary-dark) 100%);
+      color: #fff;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: .85rem;
+      box-shadow: 0 2px 6px rgba(13, 148, 136, 0.2);
+    }
+
+    /* Main Content Area */
+    .lis-main {
+      margin-left: var(--sidebar-width);
+      padding: calc(var(--topbar-height) + 1.5rem) 2rem 2rem;
+      min-height: 100vh;
+      transition: margin-left .25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    /* Card design */
+    .lis-card, .card {
+      background: var(--lis-card);
+      border: 1px solid var(--lis-border) !important;
+      border-radius: 16px !important;
+      padding: 1.5rem;
+      box-shadow: var(--lis-shadow);
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .lis-card:hover, .card:hover {
+      box-shadow: var(--lis-shadow-hover);
+      transform: translateY(-2px);
+    }
+    .card-header {
+      background-color: transparent !important;
+      border-bottom: 1px solid var(--lis-border) !important;
+      padding-bottom: 1rem !important;
+    }
+
+    /* Inputs Focus */
+    .form-control, .form-select {
+      border-radius: 10px;
+      border: 1px solid #cbd5e1;
+      padding: 0.55rem 1rem;
+      transition: all 0.2s ease;
+    }
+    .form-control:focus, .form-select:focus {
+      border-color: var(--lis-primary);
+      box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.12);
+    }
+    .btn {
+      border-radius: 10px;
+      padding: 0.55rem 1.25rem;
+      font-weight: 600;
+      transition: all 0.2s ease;
+    }
+    .btn-primary {
+      background-color: var(--lis-primary);
+      border-color: var(--lis-primary);
+    }
+    .btn-primary:hover, .btn-primary:focus, .btn-primary:active {
+      background-color: var(--lis-primary-dark) !important;
+      border-color: var(--lis-primary-dark) !important;
+    }
+    .btn-outline-primary {
+      color: var(--lis-primary);
+      border-color: var(--lis-primary);
+    }
+    .btn-outline-primary:hover {
+      background-color: var(--lis-primary);
+      border-color: var(--lis-primary);
+    }
+
+    /* Badges */
+    .badge {
+      padding: 0.4em 0.75em;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.75rem;
+    }
+
+    /* Table visual fixes */
+    .table {
+      border-color: var(--lis-border);
+    }
+    .table th {
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+      color: #64748b;
+      background-color: #f8fafc !important;
+      border-bottom-width: 1px;
+    }
+
+    /* Alert animations */
+    .alert {
+      border-radius: 12px;
+      border: 1px solid transparent;
+      padding: 1rem 1.25rem;
+      font-weight: 500;
+      animation: slideIn 0.3s ease-out;
+    }
+    @keyframes slideIn {
+      from { transform: translateY(-10px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    /* Backdrop */
+    .sidebar-backdrop {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(15, 23, 42, 0.4);
+      z-index: 1035;
+      backdrop-filter: blur(4px);
+    }
+    .sidebar-backdrop.show { display: block; }
+
+    /* Responsive */
+    @media (max-width: 991.98px) {
+      .lis-sidebar { transform: translateX(-100%); }
+      .lis-sidebar.open { transform: translateX(0); }
+      .lis-topbar { left: 0; padding: 0 1.25rem; }
+      .lis-main { margin-left: 0; padding-left: 1.25rem; padding-right: 1.25rem; }
+      .sidebar-toggle { display: inline-flex; }
+    }
+    @media (max-width: 575.98px) {
+      .lis-topbar h1 { font-size: 1rem; }
+      .user-chip .name { display: none; }
+    }
+  </style>
+
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+  <aside class="lis-sidebar" id="lisSidebar">
+    <div class="brand">
+      <i class="bi bi-clipboard2-pulse"></i>
+      <span>LIS Portal</span>
+    </div>
+
+    {% if request.user.is_authenticated %}
+      <div class="nav-section">Navigation</div>
+      <nav class="d-flex flex-column">
+        {% if request.user.role == 'ADMIN' %}
+          <a href="{% url 'custom_admin:dashboard' %}" class="nav-link"><i class="bi bi-speedometer2"></i> Admin Dashboard</a>
+        {% elif request.user.role == 'PHYSICIAN' %}
+          <a href="{% url 'physician_lab_page' %}" class="nav-link"><i class="bi bi-speedometer2"></i> Physician Dashboard</a>
+          <a href="{% url 'patient_list' %}" class="nav-link"><i class="bi bi-people"></i> Patients</a>
+          <a href="{% url 'physician_lab_orders' %}" class="nav-link"><i class="bi bi-journal-medical"></i> Lab Orders</a>
+        {% elif request.user.role == 'NURSE' %}
+          <a href="{% url 'nurse_lab_page' %}" class="nav-link"><i class="bi bi-heart-pulse"></i> Nurse Dashboard</a>
+        {% elif request.user.role == 'PHLEBOTOMIST' %}
+          <a href="{% url 'phlebotomist_worklist' %}" class="nav-link"><i class="bi bi-droplet-half"></i> Phlebotomist Worklist</a>
+        {% elif request.user.role == 'LAB_TECHNICIAN' %}
+          <a href="{% url 'labtechnician_dashboard' %}" class="nav-link"><i class="bi bi-eyedropper"></i> Technician Dashboard</a>
+        {% endif %}
+      </nav>
+    {% endif %}
+
+    <div class="mt-auto p-3 small text-secondary">&copy; {% now "Y" %} LIS</div>
+  </aside>
+
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+  <header class="lis-topbar">
+    <div class="topbar-left">
+      <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle menu">
+        <i class="bi bi-list fs-5"></i>
+      </button>
+      <h1>{% block page_title %}Dashboard{% endblock %}</h1>
+    </div>
+
+    <div class="d-flex align-items-center gap-2">
+      {% if request.user.is_authenticated %}
+        <span class="user-chip">
+          <span class="avatar">{{ request.user.username|slice:":1"|upper }}</span>
+          <span class="name">{{ request.user.username }}</span>
+        </span>
+        <button class="btn btn-sm btn-outline-danger" onclick="logout()">
+          <i class="bi bi-box-arrow-right"></i>
+          <span class="d-none d-sm-inline ms-1">Logout</span>
+        </button>
+      {% else %}
+        <a href="{% url 'login' %}" class="btn btn-sm btn-primary">
+          <i class="bi bi-box-arrow-in-right me-1"></i> Login
+        </a>
+      {% endif %}
+    </div>
+  </header>
+
+  <main class="lis-main">
+    <div id="alert-container"></div>
+    {% block content %}{% endblock %}
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const sidebar = document.getElementById('lisSidebar');
+    const backdrop = document.getElementById('sidebarBackdrop');
+    const toggleBtn = document.getElementById('sidebarToggle');
+    function closeSidebar() { sidebar.classList.remove('open'); backdrop.classList.remove('show'); }
+    function openSidebar() { sidebar.classList.add('open'); backdrop.classList.add('show'); }
+    toggleBtn?.addEventListener('click', () => sidebar.classList.contains('open') ? closeSidebar() : openSidebar());
+    backdrop?.addEventListener('click', closeSidebar);
+
+    document.querySelectorAll('.lis-sidebar .nav-link').forEach(a => {
+      if (a.getAttribute('href') === window.location.pathname) a.classList.add('active');
+    });
+
+    function getCookie(name) {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+    }
+
+    function showAlert(msg, type = 'success') {
+      const icon = type === 'success' ? 'check-circle' : 'exclamation-circle';
+      const html = `<div class="alert alert-${type} alert-dismissible fade show shadow-sm" role="alert">
+        <i class="bi bi-${icon} me-1"></i> ${msg}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>`;
+      document.getElementById('alert-container').innerHTML = html;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    async function logout() {
+      try {
+        await fetch('/api/logout/', {
+          method: 'POST',
+          headers: { 'X-CSRFToken': getCookie('csrftoken') }
+        });
+        window.location.href = '/login/';
+      } catch (e) {
+        window.location.href = '/login/';
+      }
+    }
+  </script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

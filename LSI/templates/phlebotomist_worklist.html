@@ -1,0 +1,329 @@
+{% extends 'base.html' %}
+{% block title %}Phlebotomist Worklist — LIS{% endblock %}
+{% block page_title %}Phlebotomist Worklist{% endblock %}
+
+{% block content %}
+<div class="card mb-4">
+  <div class="card-header bg-white py-3">
+    <div class="row align-items-center g-3">
+      <div class="col-md-4">
+        <label class="form-label small text-muted mb-1 fw-semibold">Status Filter</label>
+        <select id="statusFilter" class="form-select" onchange="loadOrders()">
+          <option value="">All Statuses</option>
+          <option value="1" selected>Ordered (Pending Collection)</option>
+          <option value="2">Collected</option>
+          <option value="3">In-Lab</option>
+          <option value="4">Completed</option>
+        </select>
+      </div>
+      <div class="col-md-5">
+        <label class="form-label small text-muted mb-1 fw-semibold">Search Patient Name or MRN</label>
+        <div class="input-group">
+          <input type="text" id="patientFilter" class="form-control" placeholder="Enter patient details...">
+          <button class="btn btn-outline-secondary" onclick="loadOrders()"><i class="bi bi-search"></i></button>
+        </div>
+      </div>
+      <div class="col-md-3 text-md-end mt-4">
+        <button class="btn btn-primary w-100 w-md-auto" onclick="loadOrders()">
+          <i class="bi bi-arrow-clockwise me-1"></i> Refresh
+        </button>
+      </div>
+    </div>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-3" style="width: 15%;">Order No</th>
+            <th style="width: 30%;">Patient</th>
+            <th style="width: 25%;">Assays</th>
+            <th style="width: 15%;">Ordered At</th>
+            <th style="width: 15%;">Status</th>
+            <th class="text-end pe-3" style="width: 15%;">Action</th>
+          </tr>
+        </thead>
+        <tbody id="ordersBody">
+          <tr>
+            <td colspan="6" class="text-center py-5 text-muted">
+              <span class="spinner-border spinner-border-sm me-2" role="status"></span> Loading orders...
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Order Details (Moved inside content block) -->
+<div class="modal fade" id="orderModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title fw-semibold"><i class="bi bi-info-circle me-2"></i>Order Collection Details</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="card bg-light border-0 mb-4">
+          <div class="card-body p-3">
+            <div class="row g-3">
+              <div class="col-md-4">
+                <span class="text-muted small d-block">Order No</span>
+                <span class="fw-bold fs-6 text-primary" id="orderNumber"></span>
+              </div>
+              <div class="col-md-8">
+                <span class="text-muted small d-block">Patient Name / MRN</span>
+                <span class="fw-semibold d-block" id="orderPatient"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+          <div class="col-md-6">
+            <label for="orderStatus" class="form-label fw-semibold small text-muted">Update Status</label>
+            <select id="orderStatus" class="form-select"></select>
+          </div>
+          <div class="col-md-6">
+            <label for="orderNotes" class="form-label fw-semibold small text-muted">Phlebotomist / Order Notes</label>
+            <textarea id="orderNotes" class="form-control" rows="2" placeholder="Add collection comments..."></textarea>
+          </div>
+        </div>
+
+        <h6 class="fw-semibold mb-2"><i class="bi bi-heptagon me-1 text-primary"></i>Required Assay Samples</h6>
+        <div class="table-responsive">
+          <table class="table table-bordered align-middle mb-0">
+            <thead class="table-light text-secondary small">
+              <tr>
+                <th style="width: 25%;">Test Code</th>
+                <th style="width: 45%;">Test Name</th>
+                <th style="width: 15%;">Result Value</th>
+                <th style="width: 15%;">Unit</th>
+                <th style="width: 15%;">Range</th>
+              </tr>
+            </thead>
+            <tbody id="orderResultsBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" id="orderModalSaveBtn" class="btn btn-primary" onclick="saveOrderChanges()"><i class="bi bi-check-circle me-1"></i> Save Changes</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  let orderModalInstance;
+  let currentEditOrderId = null;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    orderModalInstance = new bootstrap.Modal(document.getElementById('orderModal'));
+    loadOrders();
+  });
+
+  const statusMap = {
+    1: { label: 'Ordered', color: 'bg-secondary-subtle text-secondary border' },
+    2: { label: 'Collected', color: 'bg-warning-subtle text-warning border-warning' },
+    3: { label: 'In-Lab', color: 'bg-info-subtle text-info border-info' },
+    4: { label: 'Completed', color: 'bg-success-subtle text-success border-success' }
+  };
+
+  async function loadOrders() {
+    const status = document.getElementById('statusFilter').value;
+    const patientFilterText = document.getElementById('patientFilter').value.trim();
+    
+    let url = `/api/v1/orders/?`;
+    if (status) url += `status=${status}&`;
+    
+    try {
+      const res = await fetch(url, {
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') }
+      });
+      if (!res.ok) throw new Error('Failed to fetch orders');
+      let data = await res.json();
+      
+      // Filter clientside by search text if input is populated
+      if (patientFilterText) {
+        const query = patientFilterText.toLowerCase();
+        data = data.filter(o => 
+          o.order_no.toLowerCase().includes(query) ||
+          (o.patient_name && o.patient_name.toLowerCase().includes(query)) ||
+          (o.patient_mrn && o.patient_mrn.toLowerCase().includes(query))
+        );
+      }
+      
+      renderOrders(data);
+    } catch (e) {
+      showAlert('Failed to load orders', 'danger');
+    }
+  }
+
+  function renderOrders(orders) {
+    const tbody = document.getElementById('ordersBody');
+    tbody.innerHTML = '';
+    if (!orders.length) {
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center py-5 text-muted"><i class="bi bi-inbox fs-3 d-block mb-2 text-secondary"></i>No worklist orders found.</td></tr>`;
+      return;
+    }
+    
+    orders.forEach(o => {
+      const statusObj = statusMap[o.order_status] || { label: 'Unknown', color: 'bg-light text-dark border' };
+      const badges = o.results.map(r => `<span class="badge bg-light text-dark border me-1 mb-1" title="${r.assay_name}">${r.assay_code}</span>`).join('');
+      const date = new Date(o.ordered_at).toLocaleString();
+      
+      let actionBtn = '';
+      if (o.order_status === 1) {
+        actionBtn = `
+          <div class="d-flex justify-content-end gap-2">
+            <button class="btn btn-sm btn-success fw-semibold" onclick="collectSample(${o.id}, event)"><i class="bi bi-droplet me-1"></i> Collect</button>
+            <button class="btn btn-sm btn-outline-primary fw-semibold" onclick="openEditModal(${o.id})"><i class="bi bi-pencil-square me-1"></i> Edit</button>
+          </div>
+        `;
+      } else if (o.order_status === 2) {
+        actionBtn = `<button class="btn btn-sm btn-outline-primary fw-semibold" onclick="openEditModal(${o.id})"><i class="bi bi-pencil-square me-1"></i> Edit</button>`;
+      } else {
+        actionBtn = `<button class="btn btn-sm btn-secondary fw-semibold" onclick="openEditModal(${o.id})"><i class="bi bi-eye me-1"></i> View</button>`;
+      }
+
+      tbody.innerHTML += `
+        <tr class="result-row">
+          <td class="ps-3 fw-bold text-dark">${o.order_no}</td>
+          <td>
+            <div class="fw-semibold text-dark">${o.patient_name}</div>
+            <div class="text-muted small">MRN: ${o.patient_mrn}</div>
+          </td>
+          <td><div class="d-flex flex-wrap">${badges}</div></td>
+          <td class="small text-secondary">${date}</td>
+          <td><span class="badge ${statusObj.color}">${statusObj.label}</span></td>
+          <td class="text-end pe-3">${actionBtn}</td>
+        </tr>
+      `;
+    });
+  }
+
+  async function collectSample(orderId, event) {
+    if (event) event.stopPropagation();
+    if (!confirm('Mark sample as collected for this order?')) return;
+    
+    // Find matching button to show loading status
+    const btn = event ? event.target.closest('button') : null;
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Collecting...';
+    }
+
+    try {
+      const res = await fetch(`/api/v1/orders/${orderId}/collect/`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showAlert('Sample marked as COLLECTED successfully!', 'success');
+        loadOrders();
+      } else {
+        showAlert(data.message || 'Failed to update order status', 'danger');
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="bi bi-droplet me-1"></i> Collect';
+        }
+      }
+    } catch (e) {
+      showAlert('Network error occurred.', 'danger');
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-droplet me-1"></i> Collect';
+      }
+    }
+  }
+
+  function getStatusLabel(value) {
+    return statusMap[value] ? statusMap[value].label : 'Unknown';
+  }
+
+  function populateOrderStatusOptions(currentStatus) {
+    const statusSelect = document.getElementById('orderStatus');
+    statusSelect.innerHTML = '';
+
+    if (currentStatus === 1) {
+      statusSelect.innerHTML = `
+        <option value="1">Ordered</option>
+        <option value="2">Collected</option>
+      `;
+      statusSelect.disabled = false;
+    } else {
+      const label = getStatusLabel(currentStatus);
+      statusSelect.innerHTML = `<option value="${currentStatus}">${label}</option>`;
+      statusSelect.disabled = true;
+    }
+  }
+
+  async function openEditModal(orderId) {
+    currentEditOrderId = orderId;
+    try {
+      const res = await fetch(`/api/v1/orders/${orderId}/`, {
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') }
+      });
+      if (!res.ok) throw new Error('Failed to load order details');
+      const order = await res.json();
+
+      document.getElementById('orderNumber').textContent = order.order_no;
+      document.getElementById('orderPatient').textContent = `${order.patient_name} (MRN: ${order.patient_mrn})`;
+      populateOrderStatusOptions(order.order_status);
+      document.getElementById('orderStatus').value = order.order_status;
+      document.getElementById('orderNotes').value = order.notes || '';
+
+      const resultsBody = document.getElementById('orderResultsBody');
+      resultsBody.innerHTML = '';
+      order.results.forEach((result) => {
+        resultsBody.innerHTML += `
+          <tr>
+            <td class="fw-bold">${result.assay_code}</td>
+            <td class="fw-semibold text-dark">${result.assay_name}</td>
+            <td class="text-center font-monospace">${result.result_value || '-'}</td>
+            <td class="text-center text-secondary small">${result.unit || '-'}</td>
+            <td class="text-center text-secondary small font-monospace">${result.normal_range || '-'}</td>
+          </tr>
+        `;
+      });
+
+      document.getElementById('orderModalSaveBtn').disabled = false;
+      orderModalInstance.show();
+    } catch (e) {
+      showAlert(e.message || 'Unable to load order details.', 'danger');
+    }
+  }
+
+  async function saveOrderChanges() {
+    const status = parseInt(document.getElementById('orderStatus').value, 10);
+    const notes = document.getElementById('orderNotes').value.trim();
+    const btn = document.getElementById('orderModalSaveBtn');
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Saving...';
+
+    try {
+      const res = await fetch(`/api/v1/orders/${currentEditOrderId}/status/`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify({ order_status: status, notes })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to save changes');
+
+      showAlert(data.message || 'Order updated successfully.', 'success');
+      orderModalInstance.hide();
+      loadOrders();
+    } catch (e) {
+      showAlert(e.message || 'Unable to save changes.', 'danger');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Save Changes';
+    }
+  }
+</script>
+{% endblock %}

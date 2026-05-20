@@ -1,0 +1,1636 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Dashboard — LIS{% endblock %}
+{% block page_title %}Admin Dashboard{% endblock %}
+
+{% block extra_head %}
+<style>
+  .admin-tabs .nav-link {
+    color: #64748b;
+    font-weight: 600;
+    border-radius: 10px;
+    padding: 0.6rem 1.2rem;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+  }
+  .admin-tabs .nav-link.active {
+    background-color: var(--lis-primary);
+    color: #fff !important;
+    box-shadow: 0 4px 12px rgba(13, 148, 136, 0.2);
+  }
+  .admin-tabs .nav-link:hover:not(.active) {
+    background-color: #f1f5f9;
+    color: #0f172a;
+    border-color: var(--lis-border);
+  }
+  .action-btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-size: 0.9rem;
+  }
+  .profile-grid .profile-item {
+    background: #f8fafc;
+    border: 1px solid var(--lis-border);
+    border-radius: 12px;
+    padding: 1rem;
+    transition: all 0.2s ease;
+  }
+  .profile-grid .profile-item:hover {
+    background: #f0fdfa;
+    border-color: rgba(13, 148, 136, 0.2);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Tab Navigation Bar -->
+<div class="card mb-4 p-2 border-0 shadow-sm" style="background: rgba(255, 255, 255, 0.5); backdrop-filter: blur(8px);">
+  <ul class="nav nav-pills admin-tabs d-flex flex-wrap gap-2 mb-0" id="adminTabs" role="tablist">
+    <li class="nav-item">
+      <button class="nav-link active" id="btn-profile" onclick="switchAdminTab('profile')">
+        <i class="bi bi-person-circle me-1"></i> Admin Profile
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" id="btn-users" onclick="switchAdminTab('users')">
+        <i class="bi bi-people me-1"></i> Users List
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" id="btn-patients" onclick="switchAdminTab('patients')">
+        <i class="bi bi-file-medical me-1"></i> Patients
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" id="btn-orders" onclick="switchAdminTab('orders')">
+        <i class="bi bi-journal-medical me-1"></i> New Lab Order
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" id="btn-menus" onclick="switchAdminTab('menus')">
+        <i class="bi bi-list-columns me-1"></i> Test Menus
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" id="btn-assays" onclick="switchAdminTab('assays')">
+        <i class="bi bi-flask me-1"></i> Assay Menu
+      </button>
+    </li>
+  </ul>
+</div>
+
+<!-- TAB SECTIONS -->
+
+<!-- Section: Admin Profile -->
+<div id="section-profile" class="admin-section">
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <div>
+        <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-person-circle text-primary me-2"></i> Admin Profile</h5>
+        <small class="text-muted">Manage your profile and password settings.</small>
+      </div>
+      <div>
+        <button class="btn btn-outline-secondary btn-sm me-2" onclick="openProfileModal()">
+          <i class="bi bi-pencil-square me-1"></i> Edit Profile
+        </button>
+        <a href="{% url 'accounts:change_password' %}" class="btn btn-outline-primary btn-sm">
+          <i class="bi bi-key-fill me-1"></i> Change Password
+        </a>
+      </div>
+    </div>
+    <div class="card-body mt-3">
+      <div class="row g-3 profile-grid">
+        <div class="col-md-4">
+          <div class="profile-item">
+            <span class="text-secondary small d-block mb-1">Username</span>
+            <span id="profile-username" class="fw-semibold text-dark">—</span>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="profile-item">
+            <span class="text-secondary small d-block mb-1">Role</span>
+            <span id="profile-role" class="fw-semibold text-dark">—</span>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="profile-item">
+            <span class="text-secondary small d-block mb-1">Status</span>
+            <span id="profile-status" class="fw-semibold text-dark">—</span>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="profile-item">
+            <span class="text-secondary small d-block mb-1">Employee ID</span>
+            <span id="profile-employee" class="fw-semibold text-dark">—</span>
+          </div>
+        </div>
+        <div class="col-md-8">
+          <div class="profile-item">
+            <span class="text-secondary small d-block mb-1">Full Name</span>
+            <span id="profile-fullname" class="fw-semibold text-dark">—</span>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="profile-item">
+            <span class="text-secondary small d-block mb-1">Designation</span>
+            <span id="profile-designation" class="fw-semibold text-dark">—</span>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="profile-item">
+            <span class="text-secondary small d-block mb-1">Department</span>
+            <span id="profile-department" class="fw-semibold text-dark">—</span>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="profile-item">
+            <span class="text-secondary small d-block mb-1">Phone</span>
+            <span id="profile-phone" class="fw-semibold text-dark">—</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Section: User List -->
+<div id="section-users" class="admin-section d-none">
+  <div class="card">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+      <div>
+        <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-people text-primary me-2"></i> User Accounts</h5>
+        <small class="text-muted">Register and manage roles for clinic and laboratory staff.</small>
+      </div>
+      <button class="btn btn-primary btn-sm fw-semibold" onclick="openAddUserModal()">
+        <i class="bi bi-person-plus me-1"></i> Add User
+      </button>
+    </div>
+    <div class="card-body p-0 mt-2">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">ID / Emp ID</th>
+              <th>Username</th>
+              <th>Full Name</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th class="text-end pe-3">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="users-tbody">
+            <tr>
+              <td colspan="6" class="text-center py-4 text-muted">
+                <span class="spinner-border spinner-border-sm me-2"></span> Loading users...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Section: Patients -->
+<div id="section-patients" class="admin-section d-none">
+  <div class="card">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+      <div>
+        <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-file-medical text-primary me-2"></i> Patient Registry</h5>
+        <small class="text-muted">Register patients and assign Medical Record Numbers.</small>
+      </div>
+      <button class="btn btn-success btn-sm fw-semibold" onclick="openAddPatientModal()">
+        <i class="bi bi-person-plus-fill me-1"></i> Register Patient
+      </button>
+    </div>
+    <div class="card-body p-0 mt-2">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">MRN</th>
+              <th>Name</th>
+              <th>Age</th>
+              <th>Gender</th>
+              <th>Nationality</th>
+              <th>Status</th>
+              <th class="text-end pe-3">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="patients-tbody">
+            <tr>
+              <td colspan="7" class="text-center py-4 text-muted">
+                <span class="spinner-border spinner-border-sm me-2"></span> Loading patients...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Section: Orders -->
+<div id="section-orders" class="admin-section d-none">
+  <div class="card">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+      <div>
+        <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-journal-medical text-primary me-2"></i> Place Lab Order</h5>
+        <small class="text-muted">Enter assay orders manually for registered patients.</small>
+      </div>
+    </div>
+    <div class="card-body mt-2">
+      <div class="row g-3 mb-3">
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Search Patient</label>
+          <div class="input-group">
+            <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+            <input type="text" class="form-control border-start-0" id="orderPatientSearch" placeholder="Search MRN or name..." oninput="filterPatientOptions()">
+          </div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Select Patient <span class="text-danger">*</span></label>
+          <select class="form-select" id="orderPatientSelect">
+            <option value="">Choose patient...</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="row g-3 align-items-end mb-4 border-top pt-3">
+        <div class="col-md-5">
+          <label class="form-label fw-semibold">Search Assay</label>
+          <div class="input-group">
+            <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+            <input type="text" class="form-control border-start-0" id="orderAssaySearch" placeholder="Search assay code or name..." oninput="filterAssayOptions()">
+          </div>
+        </div>
+        <div class="col-md-5">
+          <label class="form-label fw-semibold">Select Assay <span class="text-danger">*</span></label>
+          <select class="form-select" id="orderAssaySelect">
+            <option value="">Choose assay...</option>
+          </select>
+        </div>
+        <div class="col-md-2 d-grid">
+          <button class="btn btn-outline-primary" type="button" onclick="addSelectedAssay()">
+            <i class="bi bi-plus-lg me-1"></i> Add Test
+          </button>
+        </div>
+      </div>
+
+      <h6 class="fw-bold mb-2 text-secondary">Added Assay Tests</h6>
+      <div class="table-responsive mb-4">
+        <table class="table table-sm table-hover table-bordered align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Assay</th>
+              <th>Menu Category</th>
+              <th class="text-end" style="width: 80px;">Action</th>
+            </tr>
+          </thead>
+          <tbody id="orderAssaysTbody">
+            <tr>
+              <td colspan="3" class="text-center text-muted py-4">No assays added.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="text-end">
+        <button class="btn btn-success px-4" type="button" onclick="submitOrder()">
+          <i class="bi bi-check2-circle me-1"></i> Create Lab Order
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Section: Test Menus -->
+<div id="section-menus" class="admin-section d-none">
+  <div class="card">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+      <div>
+        <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-list-columns text-primary me-2"></i> Test Menu Categories</h5>
+        <small class="text-muted">Manage clinical laboratory departments and menu sections.</small>
+      </div>
+      <button class="btn btn-primary btn-sm fw-semibold" onclick="openAddMenuModal()">
+        <i class="bi bi-plus-circle me-1"></i> Add Menu
+      </button>
+    </div>
+    <div class="card-body p-0 mt-2">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">Menu Code</th>
+              <th>Menu Name</th>
+              <th>Department</th>
+              <th>Status</th>
+              <th class="text-end pe-3">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="menus-tbody">
+            <tr>
+              <td colspan="5" class="text-center py-4 text-muted">
+                <span class="spinner-border spinner-border-sm me-2"></span> Loading test menus...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Section: Assays -->
+<div id="section-assays" class="admin-section d-none">
+  <div class="card">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+      <div>
+        <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-flask text-primary me-2"></i> Assay Management</h5>
+        <small class="text-muted">Configure laboratory assays, normal ranges, units, and Turn-Around-Times.</small>
+      </div>
+      <button class="btn btn-primary btn-sm fw-semibold" onclick="openAddAssayModal()">
+        <i class="bi bi-plus-circle me-1"></i> Add Assay
+      </button>
+    </div>
+    <div class="card-body p-0 mt-2">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">Assay Code</th>
+              <th>Assay Name</th>
+              <th>Menu</th>
+              <th>Sample Type</th>
+              <th>TAT (Hrs)</th>
+              <th>Price</th>
+              <th>Status</th>
+              <th class="text-end pe-3">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="assays-tbody">
+            <tr>
+              <td colspan="8" class="text-center py-4 text-muted">
+                <span class="spinner-border spinner-border-sm me-2"></span> Loading assays...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODALS -->
+
+<!-- User Modal -->
+<div class="modal fade" id="userModal" tabindex="-1" aria-labelledby="userModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+      <form id="userForm">
+        {% csrf_token %}
+        <div class="modal-header border-bottom border-light">
+          <h5 class="modal-title fw-bold" id="userModalLabel">Add User</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4">
+          <input type="hidden" id="userId">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Username <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="username" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Role <span class="text-danger">*</span></label>
+              <select class="form-select" id="role" required>
+                <option value="ADMIN">Admin</option>
+                <option value="PHYSICIAN">Physician</option>
+                <option value="NURSE">Nurse</option>
+                <option value="PHLEBOTOMIST">Phlebotomist</option>
+                <option value="LAB_TECHNICIAN">Lab Technician</option>
+              </select>
+            </div>
+            <div class="col-md-6 pwd-group">
+              <label class="form-label fw-semibold">Password</label>
+              <input type="password" class="form-control" id="password" minlength="8">
+              <small class="text-muted" id="pwdHelp">Leave empty to keep current password</small>
+            </div>
+            <div class="col-md-6 pwd-group">
+              <label class="form-label fw-semibold">Confirm Password</label>
+              <input type="password" class="form-control" id="confirm_password" minlength="8">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Employee ID <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="employee_id" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Full Name <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="full_name" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Designation <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="designation" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Department</label>
+              <input type="text" class="form-control" id="department">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Phone</label>
+              <input type="text" class="form-control" id="phone">
+            </div>
+            <div class="col-md-6 edit-only-group">
+              <label class="form-label fw-semibold">Status</label>
+              <select class="form-select" id="is_active">
+                <option value="true">Active</option>
+                <option value="false">Inactive</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer bg-light border-top border-light" style="border-bottom-left-radius: 16px; border-bottom-right-radius: 16px;">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="saveUserBtn">
+            <span id="saveBtnText">Save User</span>
+            <span id="saveBtnSpinner" class="spinner-border spinner-border-sm d-none"></span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Patient Modal -->
+<div class="modal fade" id="patientModal" tabindex="-1" aria-labelledby="patientModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+      <form id="patientForm">
+        {% csrf_token %}
+        <div class="modal-header border-bottom border-light">
+          <h5 class="modal-title fw-bold" id="patientModalLabel">Register Patient</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4">
+          <input type="hidden" id="patientId">
+          <div class="row g-3">
+            <div class="col-md-8">
+              <label class="form-label fw-semibold">MRN</label>
+              <input type="text" class="form-control" id="mrn" placeholder="Enter MRN or auto-generate">
+            </div>
+            <div class="col-md-4 d-flex align-items-center">
+              <div class="form-check mt-4">
+                <input class="form-check-input" type="checkbox" id="autoGenerateMrn" onchange="toggleAutoMrn(this.checked)">
+                <label class="form-check-label">Auto-generate</label>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Name <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="patientName" required>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">Age <span class="text-danger">*</span></label>
+              <input type="number" class="form-control" id="patientAge" min="0" required>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">Gender <span class="text-danger">*</span></label>
+              <select class="form-select" id="patientGender" required>
+                <option value="">Choose...</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Nationality <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="patientNationality" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Status <span class="text-danger">*</span></label>
+              <select class="form-select" id="patientStatus" required>
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer bg-light border-top border-light" style="border-bottom-left-radius: 16px; border-bottom-right-radius: 16px;">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-success" id="savePatientBtn">
+            <span id="savePatientText">Save Patient</span>
+            <span id="savePatientSpinner" class="spinner-border spinner-border-sm d-none"></span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Menu Modal -->
+<div class="modal fade" id="menuModal" tabindex="-1" aria-labelledby="menuModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+      <form id="menuForm">
+        {% csrf_token %}
+        <div class="modal-header border-bottom border-light">
+          <h5 class="modal-title fw-bold" id="menuModalLabel">Add Test Menu</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4">
+          <input type="hidden" id="menuId">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Menu Code</label>
+              <input type="text" class="form-control" id="menuCode" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Menu Name</label>
+              <input type="text" class="form-control" id="menuName" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Department</label>
+              <input type="text" class="form-control" id="menuDepartment" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Status</label>
+              <select class="form-select" id="menuStatus" required>
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Description</label>
+              <textarea class="form-control" id="menuDescription" rows="3"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer bg-light border-top border-light" style="border-bottom-left-radius: 16px; border-bottom-right-radius: 16px;">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="saveMenuBtn">
+            <span id="saveMenuText">Save Menu</span>
+            <span id="saveMenuSpinner" class="spinner-border spinner-border-sm d-none"></span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Assay Modal -->
+<div class="modal fade" id="assayModal" tabindex="-1" aria-labelledby="assayModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+      <form id="assayForm">
+        {% csrf_token %}
+        <div class="modal-header border-bottom border-light">
+          <h5 class="modal-title fw-bold" id="assayModalLabel">Add Assay</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4">
+          <input type="hidden" id="assayId">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Assay Code</label>
+              <input type="text" class="form-control" id="assayCode" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Assay Name</label>
+              <input type="text" class="form-control" id="assayName" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Test Menu</label>
+              <select class="form-select" id="assayMenuSelect" required>
+                <option value="">Select menu...</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Sample Type</label>
+              <input type="text" class="form-control" id="assaySampleType" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">TAT (hours)</label>
+              <input type="number" class="form-control" id="assayTat" min="0">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Price</label>
+              <input type="number" step="0.01" class="form-control" id="assayPrice">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Status</label>
+              <select class="form-select" id="assayStatus" required>
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Normal Range</label>
+              <input type="text" class="form-control" id="assayRange">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Unit</label>
+              <input type="text" class="form-control" id="assayUnit">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer bg-light border-top border-light" style="border-bottom-left-radius: 16px; border-bottom-right-radius: 16px;">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="saveAssayBtn">
+            <span id="saveAssayText">Save Assay</span>
+            <span id="saveAssaySpinner" class="spinner-border spinner-border-sm d-none"></span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Profile Modal -->
+<div class="modal fade" id="profileModal" tabindex="-1" aria-labelledby="profileModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+      <form id="profileForm">
+        {% csrf_token %}
+        <div class="modal-header border-bottom border-light">
+          <h5 class="modal-title fw-bold" id="profileModalLabel">Edit Profile</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Username</label>
+              <input type="text" class="form-control" id="profileUsername" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Employee ID</label>
+              <input type="text" class="form-control" id="profileEmployeeId" readonly>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Full Name</label>
+              <input type="text" class="form-control" id="profileFullName">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Designation</label>
+              <input type="text" class="form-control" id="profileDesignation">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Department</label>
+              <input type="text" class="form-control" id="profileDepartment">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Phone</label>
+              <input type="text" class="form-control" id="profilePhone">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer bg-light border-top border-light" style="border-bottom-left-radius: 16px; border-bottom-right-radius: 16px;">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="saveProfileBtn">
+            <span id="profileBtnText">Save Profile</span>
+            <span id="profileBtnSpinner" class="spinner-border spinner-border-sm d-none"></span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  let userModalInstance;
+  let profileModalInstance;
+  let patientModalInstance;
+  let menuModalInstance;
+  let assayModalInstance;
+  let allUsers = [];
+  let allPatients = [];
+  let allMenus = [];
+  let allAssays = [];
+  let selectedAssays = [];
+
+  document.addEventListener('DOMContentLoaded', () => {
+    userModalInstance = new bootstrap.Modal(document.getElementById('userModal'));
+    profileModalInstance = new bootstrap.Modal(document.getElementById('profileModal'));
+    patientModalInstance = new bootstrap.Modal(document.getElementById('patientModal'));
+    menuModalInstance = new bootstrap.Modal(document.getElementById('menuModal'));
+    assayModalInstance = new bootstrap.Modal(document.getElementById('assayModal'));
+    
+    // Switch to profile tab by default
+    switchAdminTab('profile');
+    
+    loadUsers();
+    loadPatients();
+    loadMenus();
+    loadAssays();
+    loadProfile();
+  });
+
+  function switchAdminTab(tabName) {
+    // Hide all sections
+    document.querySelectorAll('.admin-section').forEach(el => el.classList.add('d-none'));
+    // Deactivate all tab buttons
+    document.querySelectorAll('.admin-tabs .nav-link').forEach(el => el.classList.remove('active'));
+    
+    // Show selected section
+    const targetSection = document.getElementById(`section-${tabName}`);
+    if (targetSection) targetSection.classList.remove('d-none');
+    
+    // Activate selected button
+    const targetBtn = document.getElementById(`btn-${tabName}`);
+    if (targetBtn) targetBtn.classList.add('active');
+  }
+
+  function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+  }
+
+  async function loadUsers() {
+    try {
+      const res = await fetch('/api/users/', {
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') }
+      });
+      if (res.status === 401 || res.status === 403) {
+        window.location.href = '/login/';
+        return;
+      }
+      const data = await res.json();
+      if (data.success) {
+        allUsers = data.users;
+        renderUsers();
+      } else {
+        showAlert(data.message || 'Failed to load users', 'danger');
+      }
+    } catch (err) {
+      showAlert('Network error while loading users.', 'danger');
+    }
+  }
+
+  function renderUsers() {
+    const tbody = document.getElementById('users-tbody');
+    tbody.innerHTML = '';
+    
+    if (allUsers.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">No users found.</td></tr>`;
+      return;
+    }
+
+    allUsers.forEach(u => {
+      const statusBadge = u.is_active 
+        ? `<span class="badge bg-success-subtle text-success border border-success">Active</span>`
+        : `<span class="badge bg-danger-subtle text-danger border border-danger">Inactive</span>`;
+      
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="ps-3">
+          <div class="fw-bold text-dark">#${u.id}</div>
+          <div class="text-muted small">${u.employee_id || '-'}</div>
+        </td>
+        <td class="fw-semibold text-primary">@${u.username}</td>
+        <td>
+          <div class="fw-semibold text-dark">${u.full_name || '-'}</div>
+          <div class="text-muted small">${u.designation || '-'}</div>
+        </td>
+        <td><span class="badge bg-secondary-subtle text-secondary border">${u.role_display}</span></td>
+        <td>${statusBadge}</td>
+        <td class="text-end pe-3">
+          <button class="btn btn-outline-primary action-btn me-1" onclick="openEditUserModal(${u.id})" title="Edit">
+            <i class="bi bi-pencil-square"></i>
+          </button>
+          <button class="btn btn-outline-danger action-btn" onclick="deleteUser(${u.id})" title="Delete">
+            <i class="bi bi-trash3"></i>
+          </button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function openAddUserModal() {
+    document.getElementById('userForm').reset();
+    document.getElementById('userId').value = '';
+    document.getElementById('userModalLabel').innerText = 'Add New User';
+    document.getElementById('username').readOnly = false;
+    document.getElementById('employee_id').readOnly = false;
+    
+    // Require passwords for new user
+    document.getElementById('password').required = true;
+    document.getElementById('confirm_password').required = true;
+    document.getElementById('pwdHelp').classList.add('d-none');
+    
+    // Hide status for new user (default active)
+    document.querySelector('.edit-only-group').classList.add('d-none');
+    
+    userModalInstance.show();
+  }
+
+  function openEditUserModal(id) {
+    const user = allUsers.find(u => u.id === id);
+    if(!user) return;
+    
+    document.getElementById('userForm').reset();
+    document.getElementById('userId').value = user.id;
+    document.getElementById('userModalLabel').innerText = 'Edit User';
+    
+    // Populate
+    document.getElementById('username').value = user.username;
+    document.getElementById('username').readOnly = true; 
+    document.getElementById('role').value = user.role;
+    document.getElementById('employee_id').value = user.employee_id || '';
+    document.getElementById('employee_id').readOnly = true; 
+    document.getElementById('full_name').value = user.full_name || '';
+    document.getElementById('designation').value = user.designation || '';
+    document.getElementById('department').value = user.department || '';
+    document.getElementById('phone').value = user.phone || '';
+    document.getElementById('is_active').value = user.is_active ? 'true' : 'false';
+    
+    // Passwords optional for edit
+    document.getElementById('password').required = false;
+    document.getElementById('confirm_password').required = false;
+    document.getElementById('pwdHelp').classList.remove('d-none');
+    
+    // Show status for edit
+    document.querySelector('.edit-only-group').classList.remove('d-none');
+    
+    userModalInstance.show();
+  }
+
+  document.getElementById('userForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const id = document.getElementById('userId').value;
+    const pwd = document.getElementById('password').value;
+    const pwdConfirm = document.getElementById('confirm_password').value;
+    
+    if (pwd && pwd !== pwdConfirm) {
+      showAlert("Passwords do not match!", "danger");
+      return;
+    }
+
+    const payload = {
+      username: document.getElementById('username').value,
+      role: document.getElementById('role').value,
+      employee_id: document.getElementById('employee_id').value,
+      full_name: document.getElementById('full_name').value,
+      designation: document.getElementById('designation').value,
+      department: document.getElementById('department').value,
+      phone: document.getElementById('phone').value,
+    };
+    
+    if (pwd) {
+      payload.password = pwd;
+      if (!id) payload.confirm_password = pwdConfirm; 
+    }
+    
+    if (id) {
+      payload.is_active = document.getElementById('is_active').value;
+    }
+
+    const btn = document.getElementById('saveUserBtn');
+    const spinner = document.getElementById('saveBtnSpinner');
+    const text = document.getElementById('saveBtnText');
+    
+    btn.disabled = true;
+    spinner.classList.remove('d-none');
+    text.innerText = 'Saving...';
+
+    const url = id ? `/api/users/${id}/` : `/api/users/`;
+    const method = id ? 'PUT' : 'POST';
+
+    try {
+      const res = await fetch(url, {
+        method: method,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      
+      if (res.ok && data.success) {
+        userModalInstance.hide();
+        showAlert(data.message);
+        loadUsers(); 
+      } else {
+        let errorMsg = data.message || 'Error occurred';
+        if (data.errors) {
+            const firstErrorKey = Object.keys(data.errors)[0];
+            errorMsg = data.errors[firstErrorKey][0];
+        }
+        showAlert(errorMsg, "danger");
+      }
+    } catch (err) {
+      showAlert('Network error.', "danger");
+    } finally {
+      btn.disabled = false;
+      spinner.classList.add('d-none');
+      text.innerText = 'Save User';
+    }
+  });
+
+  async function deleteUser(id) {
+    if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) return;
+    
+    try {
+      const res = await fetch(`/api/users/${id}/`, {
+        method: 'DELETE',
+        headers: { 'X-CSRFToken': getCookie('csrftoken') }
+      });
+      const data = await res.json();
+      
+      if (res.ok && data.success) {
+        showAlert(data.message);
+        loadUsers();
+      } else {
+        showAlert(data.message || 'Failed to delete user', 'danger');
+      }
+    } catch (err) {
+      showAlert('Network error.', 'danger');
+    }
+  }
+
+  async function loadPatients() {
+    try {
+      const res = await fetch('/api/v1/patients/', {
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') }
+      });
+      if (res.status === 401 || res.status === 403) {
+        window.location.href = '/login/';
+        return;
+      }
+      const data = await res.json();
+      if (res.ok) {
+        allPatients = data;
+        renderPatients();
+        filterPatientOptions();
+      } else {
+        showAlert('Failed to load patients', 'danger');
+      }
+    } catch (err) {
+      showAlert('Network error while loading patients.', 'danger');
+    }
+  }
+
+  function renderPatients() {
+    const tbody = document.getElementById('patients-tbody');
+    tbody.innerHTML = '';
+    if (!allPatients || allPatients.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted">No patients found.</td></tr>`;
+      return;
+    }
+
+    allPatients.forEach(p => {
+      const statusBadge = p.status === 'Active'
+        ? `<span class="badge bg-success-subtle text-success border border-success">Active</span>`
+        : `<span class="badge bg-secondary-subtle text-secondary border border-secondary">Inactive</span>`;
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="ps-3 fw-semibold text-dark">${p.mrn}</td>
+        <td class="fw-semibold text-primary">${p.patient_name}</td>
+        <td>${p.age}</td>
+        <td>${p.gender}</td>
+        <td>${p.nationality}</td>
+        <td>${statusBadge}</td>
+        <td class="text-end pe-3">
+          <button class="btn btn-outline-primary action-btn me-1" onclick="openEditPatientModal(${p.id})" title="Edit">
+            <i class="bi bi-pencil-square"></i>
+          </button>
+          <button class="btn btn-outline-danger action-btn" onclick="deletePatient(${p.id})" title="Delete">
+            <i class="bi bi-trash3"></i>
+          </button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function openAddPatientModal() {
+    document.getElementById('patientForm').reset();
+    document.getElementById('patientId').value = '';
+    document.getElementById('patientModalLabel').innerText = 'Register Patient';
+    document.getElementById('mrn').readOnly = false;
+    document.getElementById('mrn').value = '';
+    document.getElementById('autoGenerateMrn').checked = false;
+    document.getElementById('mrn').placeholder = 'Enter MRN or auto-generate';
+    document.getElementById('savePatientText').innerText = 'Save Patient';
+    patientModalInstance.show();
+  }
+
+  function openEditPatientModal(id) {
+    const patient = allPatients.find(p => p.id === id);
+    if (!patient) return;
+    document.getElementById('patientForm').reset();
+    document.getElementById('patientId').value = patient.id;
+    document.getElementById('patientModalLabel').innerText = 'Edit Patient';
+    document.getElementById('mrn').value = patient.mrn;
+    document.getElementById('mrn').readOnly = true;
+    document.getElementById('autoGenerateMrn').checked = false;
+    document.getElementById('patientName').value = patient.patient_name;
+    document.getElementById('patientAge').value = patient.age;
+    document.getElementById('patientGender').value = patient.gender;
+    document.getElementById('patientNationality').value = patient.nationality;
+    document.getElementById('patientStatus').value = patient.status || 'Active';
+    patientModalInstance.show();
+  }
+
+  function toggleAutoMrn(isChecked) {
+    const mrnInput = document.getElementById('mrn');
+    if (isChecked) {
+      mrnInput.value = '';
+      mrnInput.readOnly = true;
+      mrnInput.placeholder = 'MRN will be generated automatically';
+    } else {
+      mrnInput.readOnly = false;
+      mrnInput.placeholder = 'Enter MRN or auto-generate';
+    }
+  }
+
+  document.getElementById('patientForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const id = document.getElementById('patientId').value;
+    const payload = {
+      mrn: document.getElementById('mrn').value,
+      auto_generate_mrn: document.getElementById('autoGenerateMrn').checked,
+      patient_name: document.getElementById('patientName').value,
+      age: parseInt(document.getElementById('patientAge').value, 10),
+      gender: document.getElementById('patientGender').value,
+      nationality: document.getElementById('patientNationality').value,
+      status: document.getElementById('patientStatus').value,
+    };
+
+    const btn = document.getElementById('savePatientBtn');
+    const spinner = document.getElementById('savePatientSpinner');
+    const text = document.getElementById('savePatientText');
+    btn.disabled = true;
+    spinner.classList.remove('d-none');
+    text.innerText = 'Saving...';
+
+    const url = id ? `/api/v1/patients/${id}/` : '/api/v1/patients/';
+    const method = id ? 'PUT' : 'POST';
+
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        patientModalInstance.hide();
+        showAlert(id ? 'Patient updated successfully.' : 'Patient registered successfully.');
+        loadPatients();
+      } else {
+        let errorMsg = 'Failed to save patient.';
+        if (data.mrn) errorMsg = data.mrn[0];
+        if (data.patient_name) errorMsg = data.patient_name[0];
+        if (data.non_field_errors) errorMsg = data.non_field_errors[0];
+        showAlert(errorMsg, 'danger');
+      }
+    } catch (err) {
+      showAlert('Network error while saving patient.', 'danger');
+    } finally {
+      btn.disabled = false;
+      spinner.classList.add('d-none');
+      text.innerText = 'Save Patient';
+    }
+  });
+
+  async function deletePatient(id) {
+    if (!confirm('Are you sure you want to delete this patient record?')) return;
+    try {
+      const res = await fetch(`/api/v1/patients/${id}/`, {
+        method: 'DELETE',
+        headers: { 'X-CSRFToken': getCookie('csrftoken') }
+      });
+      if (res.ok) {
+        showAlert('Patient deleted successfully.');
+        loadPatients();
+      } else {
+        showAlert('Failed to delete patient.', 'danger');
+      }
+    } catch (err) {
+      showAlert('Network error.', 'danger');
+    }
+  }
+
+  function openAddOrderModal() {
+    const patientSelect = document.getElementById('orderPatientSelect');
+    const assaySelect = document.getElementById('orderAssaySelect');
+    document.getElementById('orderPatientSearch').value = '';
+    document.getElementById('orderAssaySearch').value = '';
+    patientSelect.value = '';
+    assaySelect.value = '';
+    selectedAssays = [];
+    renderOrderAssays();
+    filterPatientOptions();
+    filterAssayOptions();
+  }
+
+  async function loadMenus() {
+    try {
+      const res = await fetch('/api/v1/tests/menus/', {
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') }
+      });
+      if (res.status === 401 || res.status === 403) {
+        return;
+      }
+      const data = await res.json();
+      if (res.ok) {
+        allMenus = data;
+        renderMenus();
+        populateAssayMenuSelect();
+      }
+    } catch (err) {
+      console.warn('Could not load menus.', err);
+    }
+  }
+
+  async function loadAssays() {
+    try {
+      const res = await fetch('/api/v1/tests/assays/', {
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') }
+      });
+      if (res.status === 401 || res.status === 403) {
+        return;
+      }
+      const data = await res.json();
+      if (res.ok) {
+        allAssays = data;
+        filterAssayOptions();
+        renderAssays();
+      }
+    } catch (err) {
+      console.warn('Could not load assays.', err);
+    }
+  }
+
+  function renderMenus() {
+    const tbody = document.getElementById('menus-tbody');
+    tbody.innerHTML = '';
+    if (!allMenus || allMenus.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No test menus found.</td></tr>';
+      return;
+    }
+    allMenus.forEach(menu => {
+      const statusBadge = menu.status === 'Active'
+        ? `<span class="badge bg-success-subtle text-success border border-success">Active</span>`
+        : `<span class="badge bg-secondary-subtle text-secondary border border-secondary">Inactive</span>`;
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="ps-3 fw-semibold text-dark">${menu.menu_code}</td>
+        <td class="fw-semibold">${menu.menu_name}</td>
+        <td>${menu.department}</td>
+        <td>${statusBadge}</td>
+        <td class="text-end pe-3">
+          <button class="btn btn-outline-primary action-btn me-1" onclick="openEditMenuModal(${menu.id})" title="Edit">
+            <i class="bi bi-pencil-square"></i>
+          </button>
+          <button class="btn btn-outline-danger action-btn" onclick="deleteMenu(${menu.id})" title="Delete">
+            <i class="bi bi-trash3"></i>
+          </button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function renderAssays() {
+    const tbody = document.getElementById('assays-tbody');
+    tbody.innerHTML = '';
+    if (!allAssays || allAssays.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">No assays found.</td></tr>';
+      return;
+    }
+    allAssays.forEach(assay => {
+      const statusBadge = assay.status === 'Active'
+        ? `<span class="badge bg-success-subtle text-success border border-success">Active</span>`
+        : `<span class="badge bg-secondary-subtle text-secondary border border-secondary">Inactive</span>`;
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="ps-3 fw-semibold text-dark">${assay.assay_code}</td>
+        <td class="fw-semibold">${assay.assay_name}</td>
+        <td>${assay.menu_name || '-'}</td>
+        <td>${assay.sample_type || '-'}</td>
+        <td>${assay.tat_hours ?? '-'}</td>
+        <td>$${assay.price ?? '0.00'}</td>
+        <td>${statusBadge}</td>
+        <td class="text-end pe-3">
+          <button class="btn btn-outline-primary action-btn me-1" onclick="openEditAssayModal(${assay.id})" title="Edit">
+            <i class="bi bi-pencil-square"></i>
+          </button>
+          <button class="btn btn-outline-danger action-btn" onclick="deleteAssay(${assay.id})" title="Delete">
+            <i class="bi bi-trash3"></i>
+          </button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function populateAssayMenuSelect() {
+    const select = document.getElementById('assayMenuSelect');
+    if (!select) return;
+    select.innerHTML = '<option value="">Select menu...</option>';
+    allMenus.forEach(menu => {
+      const option = document.createElement('option');
+      option.value = menu.id;
+      option.textContent = `${menu.menu_name} (${menu.menu_code})`;
+      select.appendChild(option);
+    });
+  }
+
+  function openAddMenuModal() {
+    document.getElementById('menuForm').reset();
+    document.getElementById('menuId').value = '';
+    document.getElementById('menuModalLabel').innerText = 'Add Test Menu';
+    document.getElementById('saveMenuText').innerText = 'Save Menu';
+    menuModalInstance.show();
+  }
+
+  function openEditMenuModal(id) {
+    const menu = allMenus.find(m => m.id === id);
+    if (!menu) return;
+    document.getElementById('menuForm').reset();
+    document.getElementById('menuId').value = menu.id;
+    document.getElementById('menuModalLabel').innerText = 'Edit Test Menu';
+    document.getElementById('menuCode').value = menu.menu_code;
+    document.getElementById('menuName').value = menu.menu_name;
+    document.getElementById('menuDepartment').value = menu.department;
+    document.getElementById('menuStatus').value = menu.status;
+    document.getElementById('menuDescription').value = menu.description || '';
+    document.getElementById('saveMenuText').innerText = 'Update Menu';
+    menuModalInstance.show();
+  }
+
+  async function deleteMenu(id) {
+    if (!confirm('Delete this test menu?')) return;
+    try {
+      const res = await fetch(`/api/v1/tests/menus/${id}/`, {
+        method: 'DELETE',
+        headers: { 'X-CSRFToken': getCookie('csrftoken') }
+      });
+      if (res.ok) {
+        showAlert('Test menu deleted successfully.');
+        loadMenus();
+      } else {
+        showAlert('Failed to delete test menu.', 'danger');
+      }
+    } catch (err) {
+      showAlert('Network error.', 'danger');
+    }
+  }
+
+  document.getElementById('menuForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('menuId').value;
+    const payload = {
+      menu_code: document.getElementById('menuCode').value,
+      menu_name: document.getElementById('menuName').value,
+      department: document.getElementById('menuDepartment').value,
+      status: document.getElementById('menuStatus').value,
+      description: document.getElementById('menuDescription').value,
+    };
+    const btn = document.getElementById('saveMenuBtn');
+    const spinner = document.getElementById('saveMenuSpinner');
+    const text = document.getElementById('saveMenuText');
+    btn.disabled = true;
+    spinner.classList.remove('d-none');
+    text.innerText = 'Saving...';
+    const url = id ? `/api/v1/tests/menus/${id}/` : '/api/v1/tests/menus/';
+    const method = id ? 'PUT' : 'POST';
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (res.ok) {
+        menuModalInstance.hide();
+        showAlert(id ? 'Test menu updated successfully.' : 'Test menu created successfully.');
+        loadMenus();
+      } else {
+        const error = data.detail || data.message || JSON.stringify(data);
+        showAlert(error, 'danger');
+      }
+    } catch (err) {
+      showAlert('Network error while saving test menu.', 'danger');
+    } finally {
+      btn.disabled = false;
+      spinner.classList.add('d-none');
+      text.innerText = id ? 'Update Menu' : 'Save Menu';
+    }
+  });
+
+  function openAddAssayModal() {
+    document.getElementById('assayForm').reset();
+    document.getElementById('assayId').value = '';
+    document.getElementById('assayModalLabel').innerText = 'Add Assay';
+    document.getElementById('saveAssayText').innerText = 'Save Assay';
+    populateAssayMenuSelect();
+    assayModalInstance.show();
+  }
+
+  function openEditAssayModal(id) {
+    const assay = allAssays.find(a => a.id === id);
+    if (!assay) return;
+    document.getElementById('assayForm').reset();
+    document.getElementById('assayId').value = assay.id;
+    document.getElementById('assayModalLabel').innerText = 'Edit Assay';
+    document.getElementById('assayCode').value = assay.assay_code;
+    document.getElementById('assayName').value = assay.assay_name;
+    populateAssayMenuSelect();
+    document.getElementById('assayMenuSelect').value = assay.menu || assay.menu_id || '';
+    document.getElementById('assaySampleType').value = assay.sample_type || '';
+    document.getElementById('assayTat').value = assay.tat_hours ?? '';
+    document.getElementById('assayPrice').value = assay.price ?? '';
+    document.getElementById('assayRange').value = assay.normal_range || '';
+    document.getElementById('assayUnit').value = assay.unit || '';
+    document.getElementById('assayStatus').value = assay.status;
+    document.getElementById('saveAssayText').innerText = 'Update Assay';
+    assayModalInstance.show();
+  }
+
+  async function deleteAssay(id) {
+    if (!confirm('Delete this assay?')) return;
+    try {
+      const res = await fetch(`/api/v1/tests/assays/${id}/`, {
+        method: 'DELETE',
+        headers: { 'X-CSRFToken': getCookie('csrftoken') }
+      });
+      if (res.ok) {
+        showAlert('Assay deleted successfully.');
+        loadAssays();
+      } else {
+        showAlert('Failed to delete assay.', 'danger');
+      }
+    } catch (err) {
+      showAlert('Network error.', 'danger');
+    }
+  }
+
+  document.getElementById('assayForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('assayId').value;
+    const payload = {
+      assay_code: document.getElementById('assayCode').value,
+      assay_name: document.getElementById('assayName').value,
+      menu: parseInt(document.getElementById('assayMenuSelect').value, 10),
+      sample_type: document.getElementById('assaySampleType').value,
+      tat_hours: document.getElementById('assayTat').value ? parseInt(document.getElementById('assayTat').value, 10) : null,
+      price: document.getElementById('assayPrice').value ? parseFloat(document.getElementById('assayPrice').value) : null,
+      normal_range: document.getElementById('assayRange').value,
+      unit: document.getElementById('assayUnit').value,
+      status: document.getElementById('assayStatus').value,
+    };
+    const btn = document.getElementById('saveAssayBtn');
+    const spinner = document.getElementById('saveAssaySpinner');
+    const text = document.getElementById('saveAssayText');
+    btn.disabled = true;
+    spinner.classList.remove('d-none');
+    text.innerText = 'Saving...';
+    const url = id ? `/api/v1/tests/assays/${id}/` : '/api/v1/tests/assays/';
+    const method = id ? 'PUT' : 'POST';
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (res.ok) {
+        assayModalInstance.hide();
+        showAlert(id ? 'Assay updated successfully.' : 'Assay created successfully.');
+        loadAssays();
+      } else {
+        const error = data.detail || data.message || JSON.stringify(data);
+        showAlert(error, 'danger');
+      }
+    } catch (err) {
+      showAlert('Network error while saving assay.', 'danger');
+    } finally {
+      btn.disabled = false;
+      spinner.classList.add('d-none');
+      text.innerText = id ? 'Update Assay' : 'Save Assay';
+    }
+  });
+
+  function filterPatientOptions() {
+    const query = document.getElementById('orderPatientSearch').value.trim().toLowerCase();
+    const select = document.getElementById('orderPatientSelect');
+    select.innerHTML = '<option value="">Choose patient...</option>';
+    const matches = allPatients.filter(p => {
+      return p.mrn?.toLowerCase().includes(query) || p.patient_name?.toLowerCase().includes(query);
+    });
+    matches.forEach(p => {
+      const option = document.createElement('option');
+      option.value = p.id;
+      option.textContent = `${p.mrn} — ${p.patient_name}`;
+      select.appendChild(option);
+    });
+  }
+
+  function filterAssayOptions() {
+    const query = document.getElementById('orderAssaySearch').value.trim().toLowerCase();
+    const select = document.getElementById('orderAssaySelect');
+    select.innerHTML = '<option value="">Choose assay...</option>';
+    const matches = allAssays.filter(a => {
+      return a.assay_name?.toLowerCase().includes(query)
+        || a.assay_code?.toLowerCase().includes(query)
+        || a.menu_name?.toLowerCase().includes(query);
+    });
+    matches.forEach(a => {
+      const option = document.createElement('option');
+      option.value = a.id;
+      option.textContent = `${a.assay_name} (${a.menu_name || 'No menu'})`;
+      select.appendChild(option);
+    });
+  }
+
+  function renderOrderAssays() {
+    const tbody = document.getElementById('orderAssaysTbody');
+    tbody.innerHTML = '';
+    if (!selectedAssays.length) {
+      tbody.innerHTML = `<tr><td colspan="3" class="text-center text-muted py-4">No assays added.</td></tr>`;
+      return;
+    }
+    selectedAssays.forEach((assay, index) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="fw-semibold">${assay.assay_name} (${assay.assay_code})</td>
+        <td><span class="badge bg-secondary-subtle text-secondary border">${assay.menu_name || '-'}</span></td>
+        <td class="text-end">
+          <button type="button" class="btn btn-sm btn-outline-danger action-btn" onclick="removeAssay(${index})">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function addSelectedAssay() {
+    const assayId = document.getElementById('orderAssaySelect').value;
+    if (!assayId) {
+      showAlert('Please choose an assay to add.', 'danger');
+      return;
+    }
+    const assay = allAssays.find(a => String(a.id) === assayId);
+    if (!assay) {
+      showAlert('Selected assay not found.', 'danger');
+      return;
+    }
+    if (selectedAssays.some(a => a.id === assay.id)) {
+      showAlert('This assay is already added.', 'danger');
+      return;
+    }
+    selectedAssays.push(assay);
+    renderOrderAssays();
+  }
+
+  function removeAssay(index) {
+    selectedAssays.splice(index, 1);
+    renderOrderAssays();
+  }
+
+  async function submitOrder() {
+    const patientId = document.getElementById('orderPatientSelect').value;
+    if (!patientId) {
+      showAlert('Please select a patient for the order.', 'danger');
+      return;
+    }
+    if (!selectedAssays.length) {
+      showAlert('Please add at least one assay to the order.', 'danger');
+      return;
+    }
+    const payload = {
+      patient_id: parseInt(patientId, 10),
+      assays: selectedAssays.map(a => a.id),
+      notes: 'Order created from admin dashboard'
+    };
+    try {
+      const res = await fetch('/api/v1/orders/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showAlert('Lab order created successfully.', 'success');
+        selectedAssays = [];
+        renderOrderAssays();
+      } else {
+        const error = data.detail || data.message || JSON.stringify(data);
+        showAlert(error, 'danger');
+      }
+    } catch (err) {
+      showAlert('Network error while saving order.', 'danger');
+    }
+  }
+
+  async function loadProfile() {
+    try {
+      const res = await fetch('/api/profile/', {
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') }
+      });
+      if (res.status === 401 || res.status === 403) {
+        window.location.href = '/login/';
+        return;
+      }
+      const data = await res.json();
+      if (data.success && data.user) {
+        const user = data.user;
+        document.getElementById('profile-username').innerText = user.username || '-';
+        document.getElementById('profile-role').innerText = user.role_display || '-';
+        document.getElementById('profile-status').innerText = user.is_active ? 'Active' : 'Inactive';
+        document.getElementById('profile-employee').innerText = user.employee_id || '-';
+        document.getElementById('profile-fullname').innerText = user.full_name || '-';
+        document.getElementById('profile-designation').innerText = user.designation || '-';
+        document.getElementById('profile-department').innerText = user.department || '-';
+        document.getElementById('profile-phone').innerText = user.phone || '-';
+
+        document.getElementById('profileUsername').value = user.username || '';
+        document.getElementById('profileEmployeeId').value = user.employee_id || '';
+        document.getElementById('profileFullName').value = user.full_name || '';
+        document.getElementById('profileDesignation').value = user.designation || '';
+        document.getElementById('profileDepartment').value = user.department || '';
+        document.getElementById('profilePhone').value = user.phone || '';
+      } else {
+        showAlert(data.message || 'Failed to load profile', 'danger');
+      }
+    } catch (err) {
+      showAlert('Network error while loading profile.', 'danger');
+    }
+  }
+
+  function openProfileModal() {
+    loadProfile().then(() => profileModalInstance.show());
+  }
+
+  document.getElementById('profileForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const payload = {
+      username: document.getElementById('profileUsername').value,
+      full_name: document.getElementById('profileFullName').value,
+      designation: document.getElementById('profileDesignation').value,
+      department: document.getElementById('profileDepartment').value,
+      phone: document.getElementById('profilePhone').value,
+    };
+
+    const btn = document.getElementById('saveProfileBtn');
+    const spinner = document.getElementById('profileBtnSpinner');
+    const text = document.getElementById('profileBtnText');
+
+    btn.disabled = true;
+    spinner.classList.remove('d-none');
+    text.innerText = 'Saving...';
+
+    try {
+      const res = await fetch('/api/profile/', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        profileModalInstance.hide();
+        showAlert(data.message);
+        loadProfile();
+      } else {
+        showAlert(data.message || 'Failed to save profile', 'danger');
+      }
+    } catch (err) {
+      showAlert('Network error while saving profile.', 'danger');
+    } finally {
+      btn.disabled = false;
+      spinner.classList.add('d-none');
+      text.innerText = 'Save Profile';
+    }
+  });
+</script>
+{% endblock %}

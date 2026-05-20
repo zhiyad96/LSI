@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+{% block title %}Register Patient — LIS{% endblock %}
+{% block page_title %}Register New Patient{% endblock %}
+
+{% block content %}
+<div class="card max-width-card mx-auto shadow-sm" style="max-width: 800px;">
+  <div class="card-header bg-white py-3 border-bottom border-light">
+    <h5 class="card-title mb-0 fw-semibold text-dark"><i class="bi bi-person-plus text-primary me-2"></i>Patient Demographic Information</h5>
+  </div>
+  <div class="card-body p-4">
+    <form id="patientForm">
+      <div class="row g-3">
+        <!-- MRN & Name -->
+        <div class="col-md-6 col-12">
+          <label for="mrn" class="form-label fw-semibold small text-muted">Medical Record Number (MRN) <span class="text-danger">*</span></label>
+          <div class="input-group">
+            <input type="text" id="mrn" class="form-control" placeholder="e.g. PAT-0001" required>
+            <button type="button" class="btn btn-outline-secondary fw-semibold" onclick="generateMRN()">Auto-generate</button>
+          </div>
+        </div>
+        <div class="col-md-6 col-12">
+          <label for="patient_name" class="form-label fw-semibold small text-muted">Patient Full Name <span class="text-danger">*</span></label>
+          <input type="text" id="patient_name" class="form-control" placeholder="e.g. Jane Doe" required>
+        </div>
+        
+        <!-- Age, DOB, Gender, Nationality -->
+        <div class="col-md-3 col-6">
+          <label for="age" class="form-label fw-semibold small text-muted">Age <span class="text-danger">*</span></label>
+          <input type="number" id="age" class="form-control" min="0" max="150" placeholder="Years" required>
+        </div>
+        <div class="col-md-3 col-6">
+          <label for="dob" class="form-label fw-semibold small text-muted">Date of Birth</label>
+          <input type="date" id="dob" class="form-control" onchange="calcAge()">
+        </div>
+        <div class="col-md-3 col-6">
+          <label for="gender" class="form-label fw-semibold small text-muted">Gender <span class="text-danger">*</span></label>
+          <select id="gender" class="form-select" required>
+            <option value="">Select...</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="col-md-3 col-6">
+          <label for="nationality" class="form-label fw-semibold small text-muted">Nationality <span class="text-danger">*</span></label>
+          <input type="text" id="nationality" class="form-control" value="Indian" required>
+        </div>
+
+        <!-- Phone, Email, Status -->
+        <div class="col-md-4 col-12">
+          <label for="phone" class="form-label fw-semibold small text-muted">Contact Phone Number</label>
+          <input type="tel" id="phone" class="form-control" placeholder="+91 99999 99999">
+        </div>
+        <div class="col-md-4 col-12">
+          <label for="email" class="form-label fw-semibold small text-muted">Email Address</label>
+          <input type="email" id="email" class="form-control" placeholder="patient@example.com">
+        </div>
+        <div class="col-md-4 col-12">
+          <label for="status" class="form-label fw-semibold small text-muted">Registry Status <span class="text-danger">*</span></label>
+          <select id="status" class="form-select" required>
+            <option value="Active">Active</option>
+            <option value="Inactive">Inactive</option>
+          </select>
+        </div>
+      </div>
+      
+      <!-- Actions -->
+      <div class="mt-4 pt-3 border-top border-light d-flex justify-content-end gap-2">
+        <a href="/patients/" class="btn btn-outline-secondary fw-semibold">Cancel</a>
+        <button type="submit" class="btn btn-primary fw-semibold" id="saveBtn"><i class="bi bi-save me-1"></i> Register Patient</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function generateMRN() {
+    const timestamp = new Date().getTime().toString().slice(-6);
+    document.getElementById('mrn').value = 'PAT-' + timestamp;
+  }
+
+  function calcAge() {
+    const dob = document.getElementById('dob').value;
+    if (!dob) return;
+    const diff = Date.now() - new Date(dob).getTime();
+    const ageDate = new Date(diff); 
+    document.getElementById('age').value = Math.abs(ageDate.getUTCFullYear() - 1970);
+  }
+
+  document.getElementById('patientForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('saveBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Saving...';
+
+    const payload = {
+      mrn: document.getElementById('mrn').value.trim(),
+      patient_name: document.getElementById('patient_name').value.trim(),
+      age: parseInt(document.getElementById('age').value, 10),
+      gender: document.getElementById('gender').value,
+      nationality: document.getElementById('nationality').value.trim(),
+      dob: document.getElementById('dob').value || null,
+      phone: document.getElementById('phone').value.trim(),
+      email: document.getElementById('email').value.trim(),
+      status: document.getElementById('status').value,
+    };
+
+    try {
+      const res = await fetch('/api/v1/patients/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showAlert('Patient successfully registered into registry!', 'success');
+        setTimeout(() => window.location.href = '/patients/', 1200);
+      } else {
+        const error = data.mrn ? `MRN error: ${data.mrn[0]}` : (data.detail || JSON.stringify(data));
+        showAlert(error, 'danger');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-save me-1"></i> Register Patient';
+      }
+    } catch (e) {
+      showAlert('Network error occurred.', 'danger');
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-save me-1"></i> Register Patient';
+    }
+  });
+</script>
+{% endblock %}
